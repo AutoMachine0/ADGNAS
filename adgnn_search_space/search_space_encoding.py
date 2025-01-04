@@ -1,0 +1,7 @@
+perturbation_intensity_candidate = [1.0, 0.5, 0.1, 0.05, 0.01]
+perturbation_probability_candidate = [0.1, 0.3, 0.7, 1.0]
+edge_attribute_aggregator_candidate = ["1", "5", "10", "30", "None"]
+node_attribute_aggregator_candidate = ["GCNConv", "SGConv", "None"]
+updater_dimension_candidate = [128, 256, 512, 1024]
+updater_activation_candidate = ["LeakyRelu", "Relu", "Relu6"]
+fusion_candidate = ["cat", "sum", "mean", "max", "weighted_cat", "weighted_sum", "None"]
