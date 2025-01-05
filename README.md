@@ -31,7 +31,7 @@ torch-spline-conv == 1.2.2
 ## Run the Experiment
 **1.Performance test with the optimal ADGNN designed by AdaGramp**
 ```python
-run optimal_adgnn_performace_test.py
+run optimal_adgnn_performance_test.py
 ```
 
 **2.Search new ADGNN from scratch using ADGNAS**
