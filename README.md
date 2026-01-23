@@ -1,6 +1,6 @@
 # ADGNAS
 
-- ADGNS can adaptively design a ADGNN with good generalized performance according to distribution difference of K-nearest-neighbor graph for anomaly detection.
+- ADGNAS can adaptively design a ADGNN with good generalized performance according to distribution difference of K-nearest-neighbor graph for anomaly detection.
 
 - The framework of ADGNAS is as follows:
 
