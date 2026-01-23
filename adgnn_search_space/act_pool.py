@@ -1,4 +1,5 @@
 import torch.nn.functional
+from torch.nn.functional import softplus
 
 class Linear(torch.nn.Module):
     def __init__(self):

@@ -1,17 +1,18 @@
 import math
 import torch
-import utils
+import knng_utils
 import random
 import numpy as np
 from estimator import Estimator
-from attribute_decoupled_gnn import AttributeDecoupledGNN
+from adgnn_model import ADGNN
 from adgnn_search_space.search_space_encoding import (perturbation_intensity_candidate,
                                                       perturbation_probability_candidate,
                                                       edge_attribute_aggregator_candidate,
                                                       node_attribute_aggregator_candidate,
-                                                      updater_dimension_candidate,
-                                                      updater_activation_candidate,
-                                                      fusion_candidate)
+                                                      updator_dimension_candidate,
+                                                      updator_activation_candidate,
+                                                      fusion_candidate,
+                                                      node_attribute_aggregator_neighbors)
 
 # 将所有组件的候选项按照指定顺序组合成列表
 components_candidates = [
@@ -19,9 +20,10 @@ components_candidates = [
     perturbation_probability_candidate,
     edge_attribute_aggregator_candidate,
     node_attribute_aggregator_candidate,
-    updater_dimension_candidate,
-    updater_activation_candidate,
-    fusion_candidate]
+    updator_dimension_candidate,
+    updator_activation_candidate,
+    fusion_candidate,
+    node_attribute_aggregator_neighbors]
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -356,9 +358,9 @@ def mcts(data_name,
     return best_architecture, best_val_score, top_architectures
 
 
-def estimator(data_name, estimator_hp_dict, attribute_decoupled_gnn_architecture):
+def estimator(data_name, estimator_hp_dict, adgnn_architecture):
 
-    adgnn = AttributeDecoupledGNN(data_name, attribute_decoupled_gnn_architecture).to(device)
+    adgnn = ADGNN(data_name, adgnn_architecture).to(device)
 
     estimator = Estimator(adgnn.k_graph, estimator_hp_dict)
 
@@ -395,3 +397,94 @@ def collect_leaf_nodes(node):
         for child in node.children:
             leaf_nodes.extend(collect_leaf_nodes(child))
     return leaf_nodes
+
+data_list = ["ANNTHYROID", "SATELLITE", "MI-F"]
+
+# 基于数据集名称与搜索空间预处理K_Graph图数据
+knng_utils.k_neighbor_graph_preprocessing_based_on_search_space(data_list=data_list)
+
+# 设置迭代次数
+max_iterations = 200
+iteration_list = [epoch for epoch in range(max_iterations)]
+
+# 初始化根节点
+root_node = Node()
+# 最优路径选择方式
+best_architecture_select = "avg_value"
+
+# data_name = "HRSS"
+# exploration_weight = cosine_annealing(max_iterations, [1, 2])
+# estimator_hp_dict = {"learning_rate": 0.01,
+#                      "weight_decay": 0.1,
+#                      "training_epoch": 5}
+
+# data_name = "MI-F"
+# exploration_weight = cosine_annealing(max_iterations, [1, 2])
+# estimator_hp_dict = {"learning_rate": 0.001,
+#                      "weight_decay": 0.1,
+#                      "training_epoch": 10}
+
+data_name = "MI-V"
+exploration_weight = cosine_annealing(max_iterations, [10, 20])
+estimator_hp_dict = {"learning_rate": 0.001,
+                     "weight_decay": 0.1,
+                     "training_epoch": 5}
+
+# data_name = "SATELLITE"
+# exploration_weight = cosine_annealing(max_iterations, [1, 2])
+# estimator_hp_dict = {"learning_rate": 0.001,
+#                      "weight_decay": 0.1,
+#                      "training_epoch": 5}
+
+# data_name = "ANNTHYROID"
+# exploration_weight = cosine_annealing(max_iterations, [19, 20])
+# estimator_hp_dict = {"learning_rate": 0.0000001,
+#                      "weight_decay": 0.001,
+#                      "training_epoch": 20}
+
+# 输出有前途GNN结构个数
+top_gnn = 1
+discount_factor = 0.9
+stop_threshold = 0.1
+
+# 执行蒙特卡洛树搜索
+best_architecture, best_val_score, top_architectures = mcts(data_name,
+                                                            root_node,
+                                                            iteration_list,
+                                                            exploration_weight,
+                                                            best_architecture_select,
+                                                            top_gnn,
+                                                            estimator_hp_dict,
+                                                            stop_threshold,
+                                                            discount_factor)
+
+print("Best Search Result ADGNN Architecture:", best_architecture,
+      " Best Feedback Score:", best_val_score)
+
+print("Top Promising Architectures:")
+for arch in (top_architectures):
+    print(arch)
+
+print("Best ADGNN Architecture Testing......")
+
+
+for archi in (top_architectures):
+
+    print("Test  ADGNN Architecture:", archi["architecture"])
+    avg_score = []
+    for _ in range(5):
+
+        adgnn = ADGNN(data_name, archi["architecture"]).to(device)
+
+        hp_dict = {"learning_rate": 0.001,
+                   "weight_decay": 0.1,
+                   "training_epoch": 200}
+
+        estimator = Estimator(adgnn.k_graph, hp_dict)
+
+        score, estimate_name = estimator.estimate(adgnn, adgnn_test=True)
+
+        print(estimate_name, ":", score)
+        avg_score.append(score)
+
+    print("Data Set:", data_name, "Avg", estimate_name, ":", np.mean(avg_score))

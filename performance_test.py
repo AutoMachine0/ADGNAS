@@ -1,6 +1,5 @@
 import os
 import torch
-import utils
 import pickle
 import numpy as np
 import torch.nn as nn
@@ -8,7 +7,6 @@ from estimator import Estimator
 from adgnn_search_space.mlp import MLP
 from adgnn_search_space.act_pool import ActPool
 from adgnn_search_space.conv_pool import ConvPool
-
 
 class NodeAttributeAggregator(torch.nn.Module):
 
@@ -91,26 +89,27 @@ class EdgeAttributeAggregator(torch.nn.Module):
        return y
 
 
-class AttributeDecoupledGNN(torch.nn.Module):
+class ADGNN(torch.nn.Module):
 
     def __init__(self,
                  data_name,
-                 attribute_decoupled_gnn_architecture):
+                 adgnn_architecture):
 
-        super(AttributeDecoupledGNN, self).__init__()
+        super(ADGNN, self).__init__()
 
         # 获取持久化本地的K_graph数据，并且数据经过了扰动强度与概率的预处理
         #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        I, P, D = (str(attribute_decoupled_gnn_architecture[0]),
-                   str(attribute_decoupled_gnn_architecture[1]),
-                   attribute_decoupled_gnn_architecture[2])
+        I, P, D, F = (str(adgnn_architecture[0]),
+                      str(adgnn_architecture[1]),
+                          adgnn_architecture[2],
+                          adgnn_architecture[7])
 
-        # 当 D为None时给D赋值保证k_graph获取不出错,但后续建模adgnn不会使用到distance aggregator
+        # 当D为None时给D赋值保证k_graph获取不出错,但后续建模dual attribute gnn不会使用到distance aggregator
         if D == "None":
             D = "5"
 
-        self.pre_k_graph_name = data_name + "_I_" + str(I) + "_P_" + str(P) + "_F_1_D_" + D + ".pkl"
-        file_path = os.getcwd() + "/knng_pickle/"
+        self.pre_k_graph_name = data_name + "_I_" + str(I) + "_P_" + str(P) + "_F_" + F + "_D_" + D + ".pkl"
+        file_path = os.getcwd() + "/knng/"
         k_graph_data_name = file_path + self.pre_k_graph_name
 
         if not os.path.exists(k_graph_data_name):
@@ -120,17 +119,17 @@ class AttributeDecoupledGNN(torch.nn.Module):
                 self.k_graph = pickle.load(file)
                 num_node_features = self.k_graph[0].x.shape[1]
                 num_classes = self.k_graph[0].num_classes
-        #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        self.feat_architecture = [attribute_decoupled_gnn_architecture[3],
-                                  attribute_decoupled_gnn_architecture[4],
-                                  attribute_decoupled_gnn_architecture[5]]
+        self.feat_architecture = [adgnn_architecture[3],
+                                  adgnn_architecture[4],
+                                  adgnn_architecture[5]]
 
-        self.dist_architecture = [attribute_decoupled_gnn_architecture[2],
-                                  attribute_decoupled_gnn_architecture[4],
-                                  attribute_decoupled_gnn_architecture[5]]
+        self.dist_architecture = [adgnn_architecture[2],
+                                  adgnn_architecture[4],
+                                  adgnn_architecture[5]]
 
-        self.merge = attribute_decoupled_gnn_architecture[6]
+        self.merge = adgnn_architecture[6]
 
         input_dim = 0
 
@@ -215,7 +214,8 @@ class AttributeDecoupledGNN(torch.nn.Module):
         return y
 
     def merge_computation(self, feat_out, dist_out):
-
+        norm_feat_weight = 0
+        norm_dist_weight = 0
         if "weighted" in self.merge:
 
             norm_feat_weight = torch.softmax(self.feat_weight, dim=-1)
@@ -249,27 +249,27 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # # best architecture
-    gnn_ANNTHYROID = [0.05, 1.0, '10', 'SGConv', 1024, 'Relu6', 'weighted_sum']
-    gnn_HRSS = [0.1, 0.1, '5', 'SGConv', 512, 'Relu6', 'cat']
-    gnn_SATELLITE = [0.01, 1.0, '10', 'GCNConv', 1024, 'Relu', 'sum']
-    gnn_MI_F = [1.0, 0.7, "10", "GCNConv", 128, "Relu", "weighted_cat"]
-    gnn_MI_V = [0.5, 0.1, '1', 'SGConv', 256, 'Relu6', 'mean']
-
-    data_list = ["HRSS", "MI-F", "MI-V", "SATELLITE", "ANNTHYROID"]
+    gnn_HRSS = [0.01, 0.3, '5', 'GCNConv', 512, 'LeakyRelu', 'weighted_sum', '1']
+    gnn_MI_F = [1.0, 0.1, "1", "SGConv", 1024, "Relu6", "cat", '1']
+    gnn_MI_V = [0.5, 0.1, '5', 'SGConv', 1024, 'Relu', 'cat', '1']
+    gnn_SATELLITE = [0.5, 1.0, '1', 'SGConv', 1024, 'LeakyRelu', 'max', '1']
+    gnn_ANNTHYROID = [0.05, 1.0, '30', 'SGConv', 1024, 'Relu6', 'weighted_cat', '1']
     gnn_list = [gnn_HRSS, gnn_MI_F, gnn_MI_V, gnn_SATELLITE, gnn_ANNTHYROID]
+    data_list = ["HRSS", "MI-F", "MI-V" "SATELLITE", "ANNTHYROID"]
 
-    utils.k_neighbor_graph_preprocessing_based_on_search_space(data_list=data_list)
     adgnn_test_flag = True
-
+    estimate_name = 0
     for data_name, gnn in zip(data_list, gnn_list):
         avg_score = []
         for _ in range(5):
-            adgnn = AttributeDecoupledGNN(data_name, gnn).to(device)
+
+            adgnn = ADGNN(data_name, gnn).to(device)
             hp_dict = {"learning_rate": 0.001,
                        "weight_decay": 0.1,
                        "training_epoch": 200}
 
             estimator = Estimator(adgnn.k_graph, hp_dict)
+
             if adgnn_test_flag:
                 score, estimate_name = estimator.estimate(adgnn, adgnn_test=adgnn_test_flag)
             else:
