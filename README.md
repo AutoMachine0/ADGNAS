@@ -1,6 +1,6 @@
 # ADGNAS
 
-- ADGNAS can adaptively design a ADGNN with good generalized performance according to distribution difference of K-nearest-neighbor graph for anomaly detection.
+- ADGNAS can adaptively design a ADGNN with good generalized performance according to distribution difference of K-nearest-neighbor graph (KNNG) for discrete point anomaly detection.
 
 - The framework of ADGNAS is as follows:
 
@@ -29,12 +29,12 @@ torch-sparse == 0.6.17
 torch-spline-conv == 1.2.2
 ```
 ## Run the Experiment
-**1.Performance test with the optimal ADGNN designed by AdaGramp**
+**1.Performance test with the optimal ADGNN designed by ADGNAS.**
 ```python
 run performance_test.py
 ```
 
-**2.Search new ADGNN from scratch using ADGNAS**
+**2.Search for a new ADGNN architecture from scratch using ADGNAS.**
 ```python
 run monte_carlo_tree_search.py 
 ```
