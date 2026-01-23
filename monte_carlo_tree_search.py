@@ -398,13 +398,13 @@ def collect_leaf_nodes(node):
             leaf_nodes.extend(collect_leaf_nodes(child))
     return leaf_nodes
 
-data_list = ["ANNTHYROID", "SATELLITE", "MI-F"]
+data_list = ["HRSS", "MI-F", "MI-V", "SATELLITE", "ANNTHYROID"]
 
 # 基于数据集名称与搜索空间预处理K_Graph图数据
 knng_utils.k_neighbor_graph_preprocessing_based_on_search_space(data_list=data_list)
 
 # 设置迭代次数
-max_iterations = 200
+max_iterations = 500
 iteration_list = [epoch for epoch in range(max_iterations)]
 
 # 初始化根节点

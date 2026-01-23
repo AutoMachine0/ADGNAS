@@ -36,6 +36,5 @@ run performance_test.py
 
 **2.Search new ADGNN from scratch using ADGNAS**
 ```python
-run knng_utils.py 
 run monte_carlo_tree_search.py 
 ```
