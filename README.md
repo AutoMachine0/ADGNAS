@@ -38,3 +38,20 @@ run performance_test.py
 ```python
 run monte_carlo_tree_search.py 
 ```
+
+## Citing
+If you think ADGNAS is useful tool for you, please cite our paper, thank you for your support:
+
+```
+@article{CHEN2026132348,
+title = {Attribute-decoupled graph neural architecture search for discrete point anomaly detection},
+journal = {Expert Systems with Applications},
+volume = {322},
+pages = {132348},
+year = {2026},
+issn = {0957-4174},
+doi = {https://doi.org/10.1016/j.eswa.2026.132348},
+url = {https://www.sciencedirect.com/science/article/pii/S0957417426012613},
+author = {Jiamin Chen and Zhenpeng Wu and Tairan Huang and Xinqiu Zhang and Siyang Xiao and Weihua Ou}
+}
+```
